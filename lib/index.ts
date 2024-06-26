@@ -12,7 +12,7 @@ export interface ISendSolanaTransactionParams {
 	sendOptions?: SendOptions;
 }
 
-const getIsVersionedTransaction = (transaction: VersionedTransaction | Uint8Array): transaction is VersionedTransaction =>
+const getIsVersionedTransaction = (transaction: VersionedTransaction | Uint8Array | string): transaction is VersionedTransaction =>
 	typeof transaction === 'object' && typeof (transaction as VersionedTransaction).serialize === 'function';
 
 const getIsTxn = (transaction: VersionedTransaction | Uint8Array | string): transaction is string =>

@@ -1,4 +1,4 @@
-# solana-send-transaction
+# @cryptoscan/solana-send-transaction
 
 The fastest way to send transaction in solana
 
