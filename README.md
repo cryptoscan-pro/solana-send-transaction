@@ -1,6 +1,6 @@
 # @cryptoscan/solana-send-transaction
 
-The fastest way to send transaction in solana.
+The fastest way to send transaction in solana
 
 To install package:
 
