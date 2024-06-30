@@ -3,6 +3,9 @@
 The fastest way to send transaction in solana
 
 [[GitHub](https://github.com/cryptoscan-pro/solana-send-transaction)]
+[[Our website]](https://cryptoscan.pro/)
+[[Docs]](https://docs.cryptoscan.pro/)
+[[Discord]](https://discord.gg/ktewAs67fE)
 
 To install package:
 
