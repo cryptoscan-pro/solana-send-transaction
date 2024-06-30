@@ -1,6 +1,6 @@
 # @cryptoscan/solana-send-transaction
 
-The fastest way to send transaction in solana
+The fastest way to send transaction in solana.
 
 [[GitHub](https://github.com/cryptoscan-pro/solana-send-transaction)]
 [[Our website]](https://cryptoscan.pro/)
