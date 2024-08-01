@@ -1,18 +1,29 @@
 {
   "name": "@cryptoscan/solana-send-transaction",
+  "version": "0.3.4",
+  "main": "dist/esm/index.js",
+  "module": "dist/cjs/index.js",
+  "types": "dist/types/index.d.ts",
   "type": "module",
-  "main": "dist/index.js",
-  "version": "0.1.0",
-  "scripts": {
-    "test": "bun --env-file=../../.env.test test",
-    "build": "pnpm run build:compile && pnpm run build:types",
-    "build:types": "tsc --emitDeclarationOnly",
-    "build:compile": "bun build lib/index.ts --outdir ./dist --target bun"
+  "engines": {
+    "node": ">=14.16"
   },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "scripts": {
+    "test": "vitest",
+    "build": "npm run build:esm && npm run build:cjs",
+    "build:watch": "tsc -w -p tsconfig.esm.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "lint": "eslint"
   },
   "dependencies": {
-    "@solana/web3.js": "^1.93.0"
+    "@solana/web3.js": "^1.93.1",
+    "p-retry": "^6.2.0"
+  },
+  "devDependencies": {
+    "@cryptoscan/eslint-config": "2.0.1",
+    "@cryptoscan/tsconfig": "1.0.0",
+    "eslint": "^9.6.0",
+    "vitest": "^1.6.0"
   }
 }

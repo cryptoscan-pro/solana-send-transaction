@@ -1,5 +1,5 @@
-import { createConnection } from "./createConnection";
-import { TCommitment } from "./types/TCommitment";
+import { createConnection } from "./createConnection.js";
+import { TCommitment } from "./types/TCommitment.js";
 
 export const getTransactionStatus = async (tx: string, connection = createConnection()): Promise<TCommitment | null> => {
     const status = await connection.getSignatureStatus(tx);
@@ -7,7 +7,7 @@ export const getTransactionStatus = async (tx: string, connection = createConnec
     if ('Err' in status) {
         throw new Error('Transaction confirmed and failed with errors: ' + Object.keys((status as any).Err).join(', '));
     }
-    if (status?.value === null) {
+    if (!status?.value) {
         return null;
     }
     if ('confirmationStatus' in status.value) {
