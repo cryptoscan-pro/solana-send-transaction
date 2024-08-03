@@ -23,7 +23,7 @@
     "p-retry": "^6.2.0"
   },
   "devDependencies": {
-    "@cryptoscan/eslint-config": "3.0.2",
+    "@cryptoscan/eslint-config": "3.0.3",
     "eslint-plugin-unicorn": "^55.0.0",
     "@cryptoscan/tsconfig": "1.0.0",
     "@types/node-fetch": "^2.6.11",
