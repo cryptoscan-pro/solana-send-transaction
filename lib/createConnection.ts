@@ -7,7 +7,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _fetch = fetch as any;
+global.fetch = fetch as any;
 
 export const createConnection = (
   url?: string,
@@ -24,7 +24,8 @@ export const createConnection = (
               ? "https:" + input
               : input;
 
-          return _fetch(processedInput, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return (global.fetch as any)(processedInput, {
             ...options,
             agent: getProxy ? new HttpsProxyAgent(getProxy()) : undefined,
           });
