@@ -23,6 +23,6 @@ describe("test get transaction status", () => {
     const address = "B6h248NJkAcBAkaCnji889a26tCiGXGN8cxhEJ4dX391";
     const key = new PublicKey(address);
     const status = await getTransactionStatus(await getLatestTransaction(key));
-    expect(status).toBe("confirmed");
+    expect(status).toBe("finalized");
   });
 });
