@@ -1,6 +1,6 @@
 {
   "name": "@cryptoscan/solana-send-transaction",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "main": "dist/esm/index.js",
   "module": "dist/cjs/index.js",
   "types": "dist/types/index.d.ts",
@@ -21,7 +21,7 @@
     "p-retry": "^6.2.0"
   },
   "devDependencies": {
-    "@cryptoscan/eslint-config": "2.0.1",
+    "@cryptoscan/eslint-config": "^3.0.0",
     "@cryptoscan/tsconfig": "1.0.0",
     "eslint": "^9.6.0",
     "vitest": "^1.6.0"

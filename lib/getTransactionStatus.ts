@@ -1,22 +1,35 @@
 import { createConnection } from "./createConnection.js";
-import { TCommitment } from "./types/TCommitment.js";
+import { SendCommitment } from "./types/SendCommitment.js";
 
-export const getTransactionStatus = async (tx: string, connection = createConnection()): Promise<TCommitment | null> => {
-    const status = await connection.getSignatureStatus(tx);
-
-    if ('Err' in status) {
-        throw new Error('Transaction confirmed and failed with errors: ' + Object.keys((status as any).Err).join(', '));
-    }
-    if (!status?.value) {
-        return null;
-    }
-    if ('confirmationStatus' in status.value) {
-        return status.value.confirmationStatus || null;
-    }
-    if ('status' in status.value) {
-        return 'Ok' in (status.value as any).status ? 'confirmed' : 'processed';
-    }
-
-    return null;
+interface Status {
+  value?: {
+    confirmationStatus?: SendCommitment;
+    status?: {
+      Ok?: boolean;
+    };
+  };
+  Err?: Record<string, unknown>;
 }
 
+export const getTransactionStatus = async (
+  tx: string,
+  connection = createConnection(),
+): Promise<SendCommitment | void> => {
+  const status = (await connection.getSignatureStatus(tx)) as unknown as Status;
+
+  if ("Err" in status && status.Err) {
+    throw new Error(
+      "Transaction confirmed and failed with errors: " +
+        Object.keys(status.Err).join(", "),
+    );
+  }
+  if (!status?.value) {
+    return;
+  }
+  if ("confirmationStatus" in status.value) {
+    return status.value.confirmationStatus;
+  }
+  if ("status" in status.value) {
+    return status?.value?.status?.Ok ? "confirmed" : "processed";
+  }
+};

@@ -1,9 +1,0 @@
-{
-  "extends": "@cryptoscan/tsconfig",
-  "compilerOptions": {
-    "outDir": "dist"
-  },
-  "include": [
-    "./lib/**/*"
-  ]
-}

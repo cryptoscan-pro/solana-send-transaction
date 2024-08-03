@@ -1,111 +1,141 @@
-import { Connection, SendOptions, VersionedTransaction, Transaction } from "@solana/web3.js";
+import {
+  Connection,
+  SendOptions,
+  VersionedTransaction,
+  Transaction,
+} from "@solana/web3.js";
 import { createConnection } from "./createConnection.js";
 import { getTransactionStatus } from "./getTransactionStatus.js";
-import { TCommitment } from "./types/TCommitment.js";
-import pRetry from 'p-retry';
+import { SendCommitment } from "./types/SendCommitment.js";
+import pRetry from "p-retry";
 
-export interface ISendSolanaTransactionParams {
-	commitment?: TCommitment;
-	connection?: Connection;
-	repeatTimeout?: number;
-	maxRetries?: number;
-	blockHeightLimit?: number;
-	sendOptions?: SendOptions;
+export interface SendSolanaTransactionParameters {
+  commitment?: SendCommitment;
+  connection?: Connection;
+  repeatTimeout?: number;
+  maxRetries?: number;
+  blockHeightLimit?: number;
+  sendOptions?: SendOptions;
 }
 
-const getIsTransaction = (transaction: VersionedTransaction | Transaction | Uint8Array | string): transaction is VersionedTransaction =>
-	typeof transaction === 'object' && typeof (transaction as VersionedTransaction).serialize === 'function';
+const getIsTransaction = (
+  transaction: VersionedTransaction | Transaction | Uint8Array | string,
+): transaction is VersionedTransaction =>
+  typeof transaction === "object" &&
+  typeof (transaction as VersionedTransaction).serialize === "function";
 
-const getIsTxn = (transaction: VersionedTransaction | Transaction | Uint8Array | string): transaction is string =>
-	typeof transaction === 'string';
-
+const getIsTxn = (
+  transaction: VersionedTransaction | Transaction | Uint8Array | string,
+): transaction is string => typeof transaction === "string";
 
 export default async function sendTransaction(
-	transaction: VersionedTransaction | Transaction | Uint8Array | string,
-	params?: ISendSolanaTransactionParams,
-	_retry = 0,
+  transaction: VersionedTransaction | Transaction | Uint8Array | string,
+  _parameters?: SendSolanaTransactionParameters,
+  _retry = 0,
 ): Promise<string> {
-	const {
-		connection = createConnection(),
-		repeatTimeout = 1000,
-		blockHeightLimit = 150,
-		maxRetries = 5,
-		commitment = null,
-	} = params ? params : {}
+  let parameters: SendSolanaTransactionParameters = {};
 
-	if (getIsTransaction(transaction)) {
-		transaction = transaction.serialize();
-	}
-	if (getIsTxn(transaction)) {
-		transaction = Buffer.from(transaction, "base64");
-	}
+  if (_parameters) {
+    parameters = _parameters;
+  }
 
-	let tx = '';
-	let lastValidBlockHeight: number | null = null;
+  const {
+    connection = createConnection(),
+    repeatTimeout = 1000,
+    blockHeightLimit = 150,
+    maxRetries = 5,
+    commitment = undefined,
+  } = parameters;
 
-	const getBlockhash = async () => pRetry(() => connection.getLatestBlockhashAndContext().then((blockhash) => {
-		if (!blockhash || !blockhash?.value?.blockhash || (blockhash as any).err || (blockhash as any).value.err) {
-			throw new Error('Blockhash not found')
-		}
-		lastValidBlockHeight = blockhash.value.lastValidBlockHeight - blockHeightLimit;
-	}), { retries: 2, onFailedAttempt: () => console.log('Get blockhash failed, retrying...') });
+  if (getIsTransaction(transaction)) {
+    transaction = transaction.serialize();
+  }
+  if (getIsTxn(transaction)) {
+    transaction = Buffer.from(transaction, "base64");
+  }
 
-	void getBlockhash();
+  let tx = "";
+  let lastValidBlockHeight: number | undefined;
 
-	const send = () => {
-		return connection.sendRawTransaction(transaction as Uint8Array, {
-			preflightCommitment: undefined,
-			skipPreflight: true,
-			...(params?.sendOptions || {}),
-		});
-	}
+  const getBlockhash = async () =>
+    pRetry(
+      () =>
+        connection.getLatestBlockhashAndContext().then((blockhash) => {
+          if (
+            !blockhash ||
+            !blockhash?.value?.blockhash ||
+            ("err" in blockhash && blockhash.err) ||
+            ("value" in blockhash &&
+              "err" in blockhash.value &&
+              blockhash.value.err)
+          ) {
+            throw new Error("Blockhash not found");
+          }
+          lastValidBlockHeight =
+            blockhash.value.lastValidBlockHeight - blockHeightLimit;
+        }),
+      {
+        retries: 2,
+        onFailedAttempt: () => console.log("Get blockhash failed, retrying..."),
+      },
+    );
 
-	try {
-		tx = await send();
+  void getBlockhash();
 
-		if (commitment) {
-			let times = 0;
-			const status = await getTransactionStatus(tx, connection)
-			let isReady = status === commitment;
+  const send = () => {
+    return connection.sendRawTransaction(transaction as Uint8Array, {
+      preflightCommitment: undefined,
+      skipPreflight: true,
+      ...parameters?.sendOptions,
+    });
+  };
 
-			while (!isReady) {
-				times += 1;
-				if (times > 5) {
-					break;
-				}
-				const status = await getTransactionStatus(tx, connection)
-				isReady = status === commitment;
-				if (!isReady) {
-					tx = await send();
-				}
-				else {
-					break;
-				}
+  try {
+    tx = await send();
 
-				const blockHeight = await connection.getBlockHeight();
+    if (commitment) {
+      let times = 0;
+      const status = await getTransactionStatus(tx, connection);
+      let isReady = status === commitment;
 
-				if (!lastValidBlockHeight) {
-					lastValidBlockHeight = blockHeight;
-				}
+      while (!isReady) {
+        times += 1;
+        if (times > 5) {
+          break;
+        }
+        const status = await getTransactionStatus(tx, connection);
+        isReady = status === commitment;
+        if (isReady) {
+          break;
+        } else {
+          tx = await send();
+        }
 
-				if (blockHeight > lastValidBlockHeight) {
-					throw new Error("Transaction expired");
-				}
+        const blockHeight = await connection.getBlockHeight();
 
-				await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
-			}
-		}
-	} catch (e: any) {
-		if (e.message.includes('429') && _retry < maxRetries) {
-			console.log('Retrying...', e.message);
-			await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
-			return sendTransaction(transaction, params, _retry + 1);
-		}
+        if (!lastValidBlockHeight) {
+          lastValidBlockHeight = blockHeight;
+        }
 
-		throw e;
-	}
+        if (blockHeight > lastValidBlockHeight) {
+          throw new Error("Transaction expired");
+        }
 
-	return tx;
+        await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
+      }
+    }
+  } catch (error_: unknown) {
+    const error = error_ as Error;
+    if (error.message.includes("429") && _retry < maxRetries) {
+      console.log("Retrying...", error.message);
+      await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
+      return sendTransaction(transaction, parameters, _retry + 1);
+    }
+
+    throw error;
+  }
+
+  return tx;
 }
 
-export { createConnection }
+export { createConnection } from "./createConnection.js";
