@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@cryptoscan/eslint-config": "^3.0.0",
+    "eslint-plugin-unicorn": "^55.0.0",
     "@cryptoscan/tsconfig": "1.0.0",
     "@types/node-fetch": "^2.6.11",
     "eslint": "^9.6.0",
