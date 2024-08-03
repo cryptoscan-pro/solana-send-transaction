@@ -18,11 +18,13 @@
   },
   "dependencies": {
     "@solana/web3.js": "^1.93.1",
+    "node-fetch": "^3.3.2",
     "p-retry": "^6.2.0"
   },
   "devDependencies": {
     "@cryptoscan/eslint-config": "^3.0.0",
     "@cryptoscan/tsconfig": "1.0.0",
+    "@types/node-fetch": "^2.6.11",
     "eslint": "^9.6.0",
     "vitest": "^1.6.0"
   }

@@ -3,6 +3,11 @@ import type {
   ConnectionConfig,
   Connection as SolanaConnection,
 } from "@solana/web3.js";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import fetch from "node-fetch";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _fetch = fetch as any;
 
 export const createConnection = (
   url?: string,
@@ -19,9 +24,9 @@ export const createConnection = (
               ? "https:" + input
               : input;
 
-          return fetch(processedInput, {
+          return _fetch(processedInput, {
             ...options,
-            proxy: getProxy ? getProxy() : undefined,
+            agent: getProxy ? new HttpsProxyAgent(getProxy()) : undefined,
           });
         }
       : undefined,
