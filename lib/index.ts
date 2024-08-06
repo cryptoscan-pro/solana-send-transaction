@@ -95,7 +95,6 @@ export default async function sendTransaction(
     /* const confirm = () => {
       return connection.confirmTransaction(tx, "processed");
     }; */
-    console.log("firstsent", tx);
 
     if (commitment) {
       let times = 0;
@@ -110,13 +109,10 @@ export default async function sendTransaction(
         const status = await getTransactionStatus(tx, connection);
         isReady = status === commitment;
         if (isReady) {
-          console.log("confirmed", tx);
           break;
         } else {
-          console.log("confirm", commitment, status, tx);
           // await confirm();
           tx = await send();
-          console.log("conon", tx);
         }
 
         const blockHeight = await connection.getBlockHeight();
