@@ -92,6 +92,10 @@ export default async function sendTransaction(
 
   try {
     tx = await send();
+    /* const confirm = () => {
+      return connection.confirmTransaction(tx, "processed");
+    }; */
+    console.log("firstsent", tx);
 
     if (commitment) {
       let times = 0;
@@ -100,15 +104,19 @@ export default async function sendTransaction(
 
       while (!isReady) {
         times += 1;
-        if (times > 5) {
-          break;
+        if (times > 10) {
+          throw new Error("Transaction expired");
         }
         const status = await getTransactionStatus(tx, connection);
         isReady = status === commitment;
         if (isReady) {
+          console.log("confirmed", tx);
           break;
         } else {
+          console.log("confirm", commitment, status, tx);
+          // await confirm();
           tx = await send();
+          console.log("conon", tx);
         }
 
         const blockHeight = await connection.getBlockHeight();

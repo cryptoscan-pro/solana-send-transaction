@@ -16,6 +16,7 @@ export const getTransactionStatus = async (
   connection = createConnection(),
 ): Promise<SendCommitment | void> => {
   const status = (await connection.getSignatureStatus(tx)) as unknown as Status;
+  // console.log('status', status)
 
   if ("Err" in status && status.Err) {
     throw new Error(
