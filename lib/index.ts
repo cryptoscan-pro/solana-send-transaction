@@ -16,6 +16,8 @@ export interface SendSolanaTransactionParameters {
   maxRetries?: number;
   blockHeightLimit?: number;
   sendOptions?: SendOptions;
+  checkBlockHeight?: boolean;
+  speed?: "slow" | "fast";
 }
 
 const getIsTransaction = (
@@ -41,10 +43,12 @@ export default async function sendTransaction(
 
   const {
     connection = createConnection(),
-    repeatTimeout = 1000,
+    repeatTimeout = 2000,
     blockHeightLimit = 150,
-    maxRetries = 5,
-    commitment = undefined,
+    maxRetries = 10,
+    commitment = "processed",
+    speed = "fast",
+    checkBlockHeight = true,
   } = parameters;
 
   if (getIsTransaction(transaction)) {
@@ -59,8 +63,9 @@ export default async function sendTransaction(
 
   const getBlockhash = async () =>
     pRetry(
-      () =>
-        connection.getLatestBlockhashAndContext().then((blockhash) => {
+      () => {
+        console.log("get blockhash");
+        return connection.getLatestBlockhashAndContext().then((blockhash) => {
           if (
             !blockhash ||
             !blockhash?.value?.blockhash ||
@@ -73,7 +78,8 @@ export default async function sendTransaction(
           }
           lastValidBlockHeight =
             blockhash.value.lastValidBlockHeight - blockHeightLimit;
-        }),
+        });
+      },
       {
         retries: 2,
         onFailedAttempt: () => console.log("Get blockhash failed, retrying..."),
@@ -83,49 +89,59 @@ export default async function sendTransaction(
   void getBlockhash();
 
   const send = () => {
+    console.log("send");
     return connection.sendRawTransaction(transaction as Uint8Array, {
-      preflightCommitment: undefined,
       skipPreflight: true,
       ...parameters?.sendOptions,
+      preflightCommitment: undefined,
+      maxRetries: 0,
     });
   };
 
   try {
     tx = await send();
-    /* const confirm = () => {
-      return connection.confirmTransaction(tx, "processed");
-    }; */
 
     if (commitment) {
       let times = 0;
-      const status = await getTransactionStatus(tx, connection);
-      let isReady = status === commitment;
+      let isReady = false;
 
       while (!isReady) {
         times += 1;
+        if (_retry > maxRetries) {
+          throw new Error("Max retries exceeded");
+        }
         if (times > 10) {
           throw new Error("Transaction expired");
         }
         const status = await getTransactionStatus(tx, connection);
+        console.log("status", status);
+
         isReady = status === commitment;
         if (isReady) {
           break;
         } else {
-          // await confirm();
-          tx = await send();
+          if (speed === "slow") {
+            await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
+          }
+          console.log("retrying...");
+          await send();
+          await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
+          _retry += 1;
+          console.log("sent");
         }
 
-        const blockHeight = await connection.getBlockHeight();
+        if (checkBlockHeight) {
+          console.log("ckec");
+          const blockHeight = await connection.getBlockHeight();
 
-        if (!lastValidBlockHeight) {
-          lastValidBlockHeight = blockHeight;
+          if (!lastValidBlockHeight) {
+            lastValidBlockHeight = blockHeight;
+          }
+
+          if (blockHeight > lastValidBlockHeight) {
+            throw new Error("Transaction block expired");
+          }
         }
-
-        if (blockHeight > lastValidBlockHeight) {
-          throw new Error("Transaction expired");
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
       }
     }
   } catch (error_: unknown) {
