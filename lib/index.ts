@@ -20,6 +20,8 @@ export interface SendSolanaTransactionParameters {
   speed?: "slow" | "fast";
 }
 
+const commitments = ["processed", "confirmed", "finalized"];
+
 const getIsTransaction = (
   transaction: VersionedTransaction | Transaction | Uint8Array | string,
 ): transaction is VersionedTransaction =>
@@ -64,7 +66,6 @@ export default async function sendTransaction(
   const getBlockhash = async () =>
     pRetry(
       () => {
-        console.log("get blockhash");
         return connection.getLatestBlockhashAndContext().then((blockhash) => {
           if (
             !blockhash ||
@@ -89,7 +90,6 @@ export default async function sendTransaction(
   void getBlockhash();
 
   const send = () => {
-    console.log("send");
     return connection.sendRawTransaction(transaction as Uint8Array, {
       skipPreflight: true,
       ...parameters?.sendOptions,
@@ -100,6 +100,8 @@ export default async function sendTransaction(
 
   try {
     tx = await send();
+
+    const commitmentIndex = commitments.indexOf(commitment);
 
     if (commitment) {
       let times = 0;
@@ -114,24 +116,22 @@ export default async function sendTransaction(
           throw new Error("Transaction expired");
         }
         const status = await getTransactionStatus(tx, connection);
-        console.log("status", status);
 
-        isReady = status === commitment;
+        isReady = status
+          ? commitments.indexOf(status) > commitmentIndex
+          : false;
         if (isReady) {
           break;
         } else {
           if (speed === "slow") {
             await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
           }
-          console.log("retrying...");
           await send();
           await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
           _retry += 1;
-          console.log("sent");
         }
 
         if (checkBlockHeight) {
-          console.log("ckec");
           const blockHeight = await connection.getBlockHeight();
 
           if (!lastValidBlockHeight) {
@@ -147,7 +147,7 @@ export default async function sendTransaction(
   } catch (error_: unknown) {
     const error = error_ as Error;
     if (error.message.includes("429") && _retry < maxRetries) {
-      console.log("Retrying...", error.message);
+      console.log("Retrying 429...", error.message);
       await new Promise((resolve) => setTimeout(resolve, repeatTimeout));
       return sendTransaction(transaction, parameters, _retry + 1);
     }
