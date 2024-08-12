@@ -118,7 +118,7 @@ export default async function sendTransaction(
         const status = await getTransactionStatus(tx, connection);
 
         isReady = status
-          ? commitments.indexOf(status) > commitmentIndex
+          ? commitments.indexOf(status) >= commitmentIndex
           : false;
         if (isReady) {
           break;
