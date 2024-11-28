@@ -46,7 +46,7 @@ export default async function sendTransaction(
   const {
     connection = createConnection(),
     repeatTimeout = 2000,
-    blockHeightLimit = 150,
+    blockHeightLimit = 300,
     maxRetries = 10,
     commitment = "processed",
     speed = "fast",
@@ -109,13 +109,11 @@ export default async function sendTransaction(
 
       while (!isReady) {
         times += 1;
-        if (_retry > maxRetries) {
+        if (times > maxRetries) {
           throw new Error("Max retries exceeded");
         }
-        if (times > 10) {
-          throw new Error("Transaction expired");
-        }
         const status = await getTransactionStatus(tx, connection);
+        console.log("status", status, tx);
 
         isReady = status
           ? commitments.indexOf(status) >= commitmentIndex
@@ -139,7 +137,9 @@ export default async function sendTransaction(
           }
 
           if (blockHeight > lastValidBlockHeight) {
-            throw new Error("Transaction block expired");
+            throw new Error(
+              `Transaction block expired ${blockHeight}/${lastValidBlockHeight}`,
+            );
           }
         }
       }
